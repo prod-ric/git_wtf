@@ -22,13 +22,7 @@ brew tap git-wtf/tap
 brew install git-wtf
 ```
 
-**Any OS (pip)**
-
-```bash
-pip install git-wtf
-```
-
-**Any OS (pipx — recommended if you use pipx)**
+**Any OS (pipx — recommended)**
 
 ```bash
 pipx install git-wtf
