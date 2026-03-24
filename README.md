@@ -1,108 +1,70 @@
 # git-wtf
 
-Understands what both sides of a merge conflict were trying to do. Resolves them. Explains its reasoning. Asks before touching anything.
+Both branches were doing something specific. `git wtf merge` reads what each was trying to do, keeps both, and explains every change — before writing a single file.
 
-```
-git wtf merge    # resolve merge conflicts — semantically, not just line-by-line
-git wtf          # diagnose whatever broken state you're in
-```
+<p align="center">
+  <img src="demo/demo.gif" alt="git wtf merge resolving a 2-file, 4-hunk conflict" width="900">
+</p>
 
 ---
 
 ## install
 
-**macOS (Homebrew)**
+**macOS**
 
 ```bash
-brew tap git-wtf/tap
-brew install git-wtf
+brew install git-wtf/tap/git-wtf
 ```
 
-**Any OS (pipx — recommended)**
+**Any OS**
 
 ```bash
 pipx install git-wtf
 ```
 
-Git automatically picks up `git-wtf` as a subcommand. No PATH tricks, no aliases required.
+First time using pipx? Run `pipx ensurepath` and restart your terminal. Git picks up `git-wtf` automatically as a subcommand — no aliases required.
 
-Don't have a merge conflict handy? Run `git wtf --demo` to see it in action.
+Then configure your LLM provider (30 seconds):
+
+```bash
+git wtf setup
+```
+
+> API keys, proxy config, env vars → [SETUP.md](SETUP.md)
+
+Don't have a merge conflict handy? Run `git wtf --demo`.
 
 ---
 
-## setup
-
-Run `git wtf setup` to configure your LLM provider (~30 seconds).
-
-> Full setup docs — API keys, proxy config, SSL, env var overrides — are in [SETUP.md](SETUP.md).
-
----
-
-## usage
+## what it does
 
 ### `git wtf merge`
 
-The main thing. Reads both sides of every conflict, understands the intent behind each, and produces a resolution that keeps both features intact — not just picking a winner.
+When two branches both modified the same code, git sees a text conflict. `git wtf merge` goes deeper — it reads the commit history on each side, extracts all three blob versions of every conflicted file, and asks the LLM: *what was each branch actually trying to accomplish?*
 
-**The trust flow (this is the important part):**
+Then it writes a resolution that keeps both features intact.
 
-After resolving all conflicts, before writing a single file, it shows you:
+Before touching disk it shows you:
 
-1. A per-file panel — what each file does now, confidence rating (HIGH / MEDIUM / LOW), and any warnings about things it wasn't sure about
-2. A plain-English summary of the entire merge — what the app will *do* after this, what trade-offs were made, anything that needs manual review
-3. A single `apply this merge? [Y/n]` prompt
+- **Per-file panels** — what the file does now, a confidence rating (HIGH / MEDIUM / LOW), and a callout for anything it wasn't sure about
+- **A plain-English summary** — what the app will do after this merge, what trade-offs were made
+- **One prompt** — `apply this merge? [Y/n]`
 
-Nothing is written to disk until you say Y.
-
-```
-  feat/chat-agent  +  feat/onboarding  →  3 conflicted files
-
-  (1/3)  src/auth.ts        2 hunks    MEDIUM
-  (2/3)  src/api/client.ts  1 hunk     HIGH
-  (3/3)  src/user.ts        3 hunks    HIGH
-
-────────────────────── what i'm about to change ───────────────────
-
-╭──────  src/auth.ts    MEDIUM   2 hunks  ─────────────────────────╮
-│                                                                   │
-│  fetchUser now uses the shared httpClient AND sends the auth      │
-│  token as a Bearer header. logout clears localStorage, the        │
-│  httpClient cache, AND sessionStorage — all three steps kept.     │
-│                                                                   │
-│  ⚠  verify httpClient.get() accepts a headers config object       │
-│     before shipping                                               │
-╰───────────────────────────────────────────────────────────────────╯
-
-───────────────────────── the big picture ─────────────────────────
-
-╭──────────────  what this merge will do  ─────────────────────────╮
-│                                                                   │
-│  • fetchUser now uses the shared HTTP client AND sends auth       │
-│  • logout does a full triple cleanup — nothing left behind        │
-│  • onboarding auth + chat-agent HTTP refactor coexist cleanly     │
-│                                                                   │
-│  ⚠  NEEDS MANUAL REVIEW: httpClient.get() headers assumption      │
-│                                                                   │
-│  vibe check: clean merge, one loose wire — verify before ship     │
-╰───────────────────────────────────────────────────────────────────╯
-
-  3 files resolved  ·  nothing written to disk yet
-
-  apply this merge? [Y/n]
-```
+Nothing is written until you say Y.
 
 ### `git wtf`
 
-Diagnoses whatever state your repo is in. Detached HEAD, mid-merge, diverged from remote, unresolved conflicts — it reads the git state, figures out what happened, and tells you exactly what to run.
+Diagnoses whatever state your repo is in — detached HEAD, mid-merge, diverged from remote, unresolved conflicts. Reads the git state, figures out what happened, tells you exactly what to run.
 
 ---
 
 ## how it works
 
-- Reads git state and parses conflict markers — extracts all three blob versions (ancestor, yours, theirs) plus full file context
+- Parses conflict markers and extracts all three blob versions (ancestor, yours, theirs) with full file context
 - Reads project context — `README.md`, `package.json`, `CLAUDE.md` / `.cursorrules` — so the LLM knows what you're building
-- One LLM call per conflicted file, with both branch commit histories and full file versions
-- Shows you everything it's about to do, asks for confirmation, then writes and `git add`s
+- One LLM call per conflicted file, sent with both branches' full commit histories
+- A second call synthesises a plain-English "what this merge will do" summary
+- Shows everything, asks once, then writes and `git add`s
 
 ---
 

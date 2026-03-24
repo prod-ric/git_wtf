@@ -11,7 +11,7 @@
 VERSION_FILE := git_wtf/__init__.py
 CURRENT_VERSION := $(shell grep '__version__' $(VERSION_FILE) | cut -d'"' -f2)
 
-.PHONY: dev build publish release brew-resources clean check
+.PHONY: dev build publish release brew-resources setup-tap demo clean check
 
 # ── development ───────────────────────────────────────────────────────────────
 
@@ -55,6 +55,25 @@ endif
 	git push && git push --tags
 	@echo ""
 	@echo "tag v$(v) pushed — GitHub Actions will publish to PyPI and update the brew tap."
+
+# ── demo recording ────────────────────────────────────────────────────────────
+# Creates a mid-merge repo, then records git wtf merge with VHS.
+# Requires: vhs (brew install vhs)
+
+demo:
+	@echo "▸ setting up demo conflict repo..."
+	@bash demo/setup-conflict.sh
+	@echo "▸ recording with VHS..."
+	vhs demo/demo.tape
+	@echo ""
+	@echo "✓ demo/demo.gif written"
+
+# ── homebrew tap bootstrap ────────────────────────────────────────────────────
+# Creates github.com/git-wtf/homebrew-tap and seeds it with the formula.
+# Run once before the first release. Requires: gh CLI, write access to the git-wtf org.
+
+setup-tap:
+	@bash scripts/setup-tap.sh
 
 # ── homebrew resource blocks ──────────────────────────────────────────────────
 # Requires: pip install homebrew-pypi-poet

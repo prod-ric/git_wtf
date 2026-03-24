@@ -51,10 +51,12 @@ console = Console(
 # ── logo ──────────────────────────────────────────────────────────────────────
 
 LOGO = """\
- __ _(_) |_  __ _____ __
-/ _` | |  _| \\ V V / '_ \\
-\\__, |_|\\__|  \\_/\\_/ | .__/
-|___/               |_|"""
+        iii tt                tt     fff 
+ gggggg     tt     ww      ww tt    ff   
+gg   gg iii tttt   ww      ww tttt  ffff 
+ggggggg iii tt      ww ww ww  tt    ff   
+     gg iii  tttt    ww  ww    tttt ff   
+ ggggg                                   """
 
 
 def print_logo() -> None:
