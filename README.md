@@ -3,7 +3,7 @@
 Both branches were doing something specific. `git wtf merge` reads what each was trying to do, keeps both, and explains every change before writing a single file.
 
 <p align="center">
-  <img src="demo/demo.gif" alt="git wtf merge resolving a 2-file, 4-hunk conflict" width="900">
+  <img src="demo/demo_new.gif" alt="git wtf merge resolving a 2-file, 4-hunk conflict" width="900">
 </p>
 
 ---
