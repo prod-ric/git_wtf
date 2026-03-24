@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "git-wtf"
+version = "0.1.0"
+description = "AI-powered git assistant for when git is being git"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "git-wtf", email = "hi@git-wtf.sh" }]
+keywords = ["git", "ai", "merge", "conflict", "developer-tools", "cli"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Version Control :: Git",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "openai>=1.30.0",
+    "rich>=13.0.0",
+    "httpx>=0.25.0",
+]
+
+[project.urls]
+Homepage    = "https://github.com/git-wtf/git-wtf"
+Repository  = "https://github.com/git-wtf/git-wtf"
+Issues      = "https://github.com/git-wtf/git-wtf/issues"
+Changelog   = "https://github.com/git-wtf/git-wtf/releases"
+
+[project.scripts]
+git-wtf = "git_wtf.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["git_wtf"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "git_wtf/",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]

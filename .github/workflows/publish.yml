@@ -1,0 +1,108 @@
+# Publishes git-wtf to PyPI on every version tag (v0.1.0, v1.0.0, etc.)
+# After publish succeeds, triggers the brew workflow to update the tap formula.
+#
+# Setup required:
+#   1. Go to https://pypi.org/manage/account/token/ and create an API token
+#   2. Add it as a GitHub Actions secret named PYPI_API_TOKEN
+#   3. Create the homebrew tap repo: github.com/git-wtf/homebrew-tap
+#   4. Add a PAT with repo write access as secret: BREW_TAP_TOKEN
+
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"   # triggers on v0.1.0, v1.2.3, etc.
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build hatchling
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/git-wtf/
+    permissions:
+      id-token: write   # for trusted publishing (OIDC)
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # Uses OIDC trusted publishing — no token needed if configured on PyPI.
+        # Fallback: set PYPI_API_TOKEN secret and use:
+        # with:
+        #   password: ${{ secrets.PYPI_API_TOKEN }}
+
+  update-brew:
+    name: Update Homebrew tap
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Wait for PyPI to propagate
+        run: sleep 60
+
+      - name: Compute SHA256 of sdist
+        id: sha
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          URL="https://files.pythonhosted.org/packages/source/g/git-wtf/git_wtf-${VERSION}.tar.gz"
+          SHA=$(curl -sL "$URL" | sha256sum | awk '{print $1}')
+          echo "sha256=$SHA" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Checkout homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: git-wtf/homebrew-tap
+          token: ${{ secrets.BREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          SHA=${{ steps.sha.outputs.sha256 }}
+          URL=${{ steps.sha.outputs.url }}
+          FILE=homebrew-tap/Formula/git-wtf.rb
+
+          # Update url, sha256, and version references in the formula
+          sed -i "s|url \"https://files.pythonhosted.org/.*\"|url \"$URL\"|" "$FILE"
+          sed -i "s|sha256 \".*\"|sha256 \"$SHA\"|" "$FILE"
+
+      - name: Commit and push updated formula
+        run: |
+          cd homebrew-tap
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/git-wtf.rb
+          git commit -m "git-wtf ${{ steps.version.outputs.version }}"
+          git push

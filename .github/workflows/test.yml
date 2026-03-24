@@ -1,0 +1,88 @@
+# Run on every push and PR — keeps master green.
+name: Test
+
+on:
+  push:
+    branches: ["master", "main"]
+  pull_request:
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Smoke test — version flag
+        run: git-wtf --version
+
+      - name: Smoke test — help
+        run: git-wtf --help
+
+      - name: Smoke test — imports clean
+        run: |
+          python -c "from git_wtf.cli import main"
+          python -c "from git_wtf.collectors import git_state, conflict, context"
+          python -c "from git_wtf.llm.client import LLMClient"
+          python -c "from git_wtf.llm.prompts import build_diagnose_prompt"
+          python -c "from git_wtf.commands import diagnose, merge, setup"
+          python -c "from git_wtf.resolver import build_resolved_content"
+          python -c "from git_wtf.config import load, save"
+          python -c "from git_wtf import ui"
+
+      - name: Test conflict parser
+        run: |
+          python -c "
+          import tempfile, os
+          from git_wtf.collectors.conflict import parse_file
+
+          # Write a file with conflict markers
+          content = '<<<<<<< HEAD\nfoo()\n=======\nbar()\n>>>>>>> branch\n'
+          with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, dir='.') as f:
+              f.write(content)
+              name = f.name
+
+          cf = parse_file(os.path.basename(name), cwd='.')
+          assert len(cf.hunks) == 1, f'expected 1 hunk, got {len(cf.hunks)}'
+          assert cf.hunks[0].ours_lines == ['foo()']
+          assert cf.hunks[0].theirs_lines == ['bar()']
+          os.unlink(name)
+          print('conflict parser ok')
+          "
+
+      - name: Test resolver
+        run: |
+          python -c "
+          from git_wtf.collectors.conflict import ConflictFile, ConflictHunk
+          from git_wtf.resolver import build_resolved_content
+
+          working = '<<<<<<< HEAD\nfoo()\n=======\nbar()\n>>>>>>> b\nend()\n'
+          hunk = ConflictHunk(
+              index=1, ours_label='HEAD', theirs_label='b',
+              ours_lines=['foo()'], theirs_lines=['bar()'],
+              context_before=[], context_after=['end()'], start_line=1,
+          )
+          cf = ConflictFile(
+              path='test.py', hunks=[hunk],
+              ancestor_content='', ours_content='', theirs_content='',
+              working_tree_content=working,
+          )
+          result = build_resolved_content(cf, ['foo()\nbar()'])
+          assert '<<<<<<<' not in result
+          assert 'foo()' in result
+          assert 'bar()' in result
+          assert 'end()' in result
+          print('resolver ok')
+          "
