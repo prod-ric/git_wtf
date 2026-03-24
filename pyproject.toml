@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "git-wtf"
-version = "0.1.0"
+version = "0.1.1"
 description = "AI-powered git assistant for when git is being git"
 readme = "README.md"
 requires-python = ">=3.9"

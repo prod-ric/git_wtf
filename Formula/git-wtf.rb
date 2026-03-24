@@ -10,7 +10,7 @@ class GitWtf < Formula
 
   desc "AI-powered git assistant for when git is being git"
   homepage "https://github.com/git-wtf/git-wtf"
-  url "https://files.pythonhosted.org/packages/source/g/git-wtf/git_wtf-0.1.0.tar.gz"
+  url "https://files.pythonhosted.org/packages/source/g/git-wtf/git_wtf-0.1.1.tar.gz"
   sha256 "PLACEHOLDER_REPLACE_ON_RELEASE"
   license "MIT"
   head "https://github.com/git-wtf/git-wtf.git", branch: "master"
