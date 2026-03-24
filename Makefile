@@ -45,10 +45,10 @@ ifndef v
 endif
 	@echo "releasing v$(v) (current: $(CURRENT_VERSION))"
 	# Bump version in __init__.py and pyproject.toml
-	sed -i 's/__version__ = "$(CURRENT_VERSION)"/__version__ = "$(v)"/' $(VERSION_FILE)
-	sed -i 's/^version = "$(CURRENT_VERSION)"/version = "$(v)"/' pyproject.toml
+	sed -i '' 's/__version__ = "$(CURRENT_VERSION)"/__version__ = "$(v)"/' $(VERSION_FILE)
+	sed -i '' 's/^version = "$(CURRENT_VERSION)"/version = "$(v)"/' pyproject.toml
 	# Update formula version reference (the sha256 will be updated by CI after publish)
-	sed -i 's/git_wtf-$(CURRENT_VERSION)/git_wtf-$(v)/g' Formula/git-wtf.rb
+	sed -i '' 's/git_wtf-$(CURRENT_VERSION)/git_wtf-$(v)/g' Formula/git-wtf.rb
 	git add $(VERSION_FILE) pyproject.toml Formula/git-wtf.rb
 	git commit -m "release: v$(v)"
 	git tag "v$(v)"
